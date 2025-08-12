@@ -1,6 +1,13 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 
 import Card from '../models/card.model'
+import User from '../models/user.model'
+import {
+	_500,
+	expires1Day,
+	expires3Days,
+	expires5Days
+} from '../utils'
 
 type Card = {
 	correctAnswer: string
@@ -8,6 +15,12 @@ type Card = {
 	tags: string[]
 	topic: string
 	question: string
+}
+
+type AnswerCard = {
+	cardId: string
+	difficulty: string
+	isUserAnswerCorrect: boolean
 }
 
 const getCardsKey = 'cards:all'
@@ -36,6 +49,14 @@ export const createCard = (f: FastifyInstance) => async (req: FastifyRequest<{ B
 			owner: ownerId
 		})
 
+		await User.findByIdAndUpdate(ownerId,
+			{
+				$addToSet: {
+					cards: newCard._id
+				}
+			},
+		)
+
 		await f.redis.del(getCardsKey)
 
 		const { owner, _id, ...rest } = newCard.toObject()
@@ -48,7 +69,7 @@ export const createCard = (f: FastifyInstance) => async (req: FastifyRequest<{ B
 		})
 	} catch(e) {
 		console.error(e)
-		return rep.code(500).send({ message: 'Something went wrong. Try again later.' })
+		return _500(rep)
 	}
 }
 
@@ -72,9 +93,85 @@ export const getCards = (f: FastifyInstance) => async (req: FastifyRequest<{ Par
 		return rep.code(200).send({ cached: false, data: cards })
 	} catch(e) {
 		console.error(e)
-		return rep.code(500).send({ message: 'Something went wrong. Try again later.' })
+		return _500(rep)
 	}
 }
 
-// getCardById display info of that card
-// answer card
+export const answerCard = (f: FastifyInstance) => async (req: FastifyRequest<{ Body: AnswerCard, Params: { ownerId: string } }>, rep: FastifyReply) => {
+	try {
+		const {
+			cardId,
+			difficulty,
+			isUserAnswerCorrect
+		} = req.body
+
+		let nextReviewAt = new Date()
+
+		switch(difficulty) {
+			case 'easy':
+				nextReviewAt = expires5Days()
+				break
+			case 'medium':
+				nextReviewAt = expires3Days()
+				break
+			default:
+				nextReviewAt = expires1Day()
+				break
+		}
+
+		const card = await Card.findByIdAndUpdate(cardId,
+			{
+				nextReviewAt: isUserAnswerCorrect ? nextReviewAt : new Date(),
+				$push: {
+					answeredCorrectlyAt: isUserAnswerCorrect ? new Date() : undefined,
+					answerHistory: {
+						date: new Date(),
+						correct: isUserAnswerCorrect
+					}
+				}
+			},
+			{
+				new: true,
+				runValidators: true
+			}
+		).select('-owner -updatedAt').lean()
+
+		if(!card) return rep.code(404).send({ message: 'Card not found.' })
+
+		await f.redis.del(getCardsKey)
+
+		return rep.code(200).send({ data: card })
+	} catch(e) {
+		console.error(e)
+		return _500(rep)
+	}
+}
+
+export const getCardById = (f: FastifyInstance) => async (req: FastifyRequest<{ Params: { cardId: string, ownerId: string } }>, rep: FastifyReply) => {
+	try {
+		const { cardId } = req.params
+
+		if(!cardId) return rep.code(404).send({ message: 'Card not found.' })
+
+		const key = `card:${cardId}`
+		const result = await f.redis.get(key)
+
+		if(result) return rep.code(200).send({ cached: true, data: JSON.parse(result) })
+
+		const card = await Card.findById(cardId).select('-owner -updatedAt').lean()
+
+		if(!card) return rep.code(404).send({ message: 'Card not found.' })
+
+		await f.redis.set(
+			key,
+			JSON.stringify(card),
+			'EX',
+			120
+		)
+
+		return rep.code(200).send({ cached: false, data: card })
+	} catch(e) {
+		console.error(e)
+		return _500(rep)
+	}
+}

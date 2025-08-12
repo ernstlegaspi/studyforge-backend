@@ -3,6 +3,58 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = card;
 const card_controller_1 = require("../controllers/card.controller");
 const index_middleware_1 = require("../middleware/index.middleware");
+const dataResponseSchema = {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+        '_id',
+        'answeredCorrectlyAt',
+        'answerHistory',
+        'correctAnswer',
+        'createdAt',
+        'difficulty',
+        'nextReviewAt',
+        'normalizedQuestion',
+        'tags',
+        'topic',
+        'question'
+    ],
+    properties: {
+        _id: { type: 'string' },
+        answeredCorrectlyAt: {
+            type: 'array',
+            items: { type: 'string', format: 'date-time' }
+        },
+        answerHistory: {
+            type: 'array',
+            items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['date', 'correct'],
+                properties: {
+                    date: { type: 'string', format: 'date-time' },
+                    correct: { type: 'boolean' }
+                }
+            }
+        },
+        createdAt: { type: 'string', format: 'date-time' },
+        correctAnswer: { type: 'string' },
+        difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
+        nextReviewAt: { type: 'string', format: 'date-time' },
+        normalizedQuestion: { type: 'string' },
+        tags: { type: 'array' },
+        topic: { type: 'string' },
+        question: { type: 'string' }
+    }
+};
+const paramsSchema = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['ownerId'],
+    properties: {
+        ownerId: { type: 'string' }
+    }
+};
 async function card(f) {
     f.route({
         method: 'POST',
@@ -26,65 +78,13 @@ async function card(f) {
                     question: { type: 'string', minLength: 5 }
                 }
             },
-            params: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['ownerId'],
-                properties: {
-                    ownerId: { type: 'string' }
-                }
-            },
+            params: paramsSchema,
             response: {
                 201: {
                     additionalProperties: false,
                     type: 'object',
                     required: ['data'],
-                    properties: {
-                        data: {
-                            type: 'object',
-                            additionalProperties: false,
-                            required: [
-                                '_id',
-                                'answeredCorrectlyAt',
-                                'answerHistory',
-                                'correctAnswer',
-                                'createdAt',
-                                'difficulty',
-                                'nextReviewAt',
-                                'normalizedQuestion',
-                                'tags',
-                                'topic',
-                                'question'
-                            ],
-                            properties: {
-                                _id: { type: 'string' },
-                                answeredCorrectlyAt: {
-                                    type: 'array',
-                                    items: { type: 'string', format: 'date-time' }
-                                },
-                                answerHistory: {
-                                    type: 'array',
-                                    items: {
-                                        type: 'object',
-                                        additionalProperties: false,
-                                        required: ['date', 'correct'],
-                                        properties: {
-                                            date: { type: 'string', format: 'date-time' },
-                                            correct: { type: 'boolean' }
-                                        }
-                                    }
-                                },
-                                createdAt: { type: 'string', format: 'date-time' },
-                                correctAnswer: { type: 'string' },
-                                difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
-                                nextReviewAt: { type: 'string', format: 'date-time' },
-                                normalizedQuestion: { type: 'string' },
-                                tags: { type: 'array' },
-                                topic: { type: 'string' },
-                                question: { type: 'string' }
-                            }
-                        }
-                    }
+                    properties: { data: dataResponseSchema }
                 },
                 500: { $ref: 'ErrorResponse#' }
             }
@@ -96,14 +96,7 @@ async function card(f) {
         method: 'GET',
         url: ':ownerId',
         schema: {
-            params: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['ownerId'],
-                properties: {
-                    ownerId: { type: 'string' }
-                }
-            },
+            params: paramsSchema,
             response: {
                 200: {
                     type: 'object',
@@ -113,50 +106,7 @@ async function card(f) {
                         cached: { type: 'boolean' },
                         data: {
                             type: 'array',
-                            items: {
-                                type: 'object',
-                                additionalProperties: false,
-                                required: [
-                                    '_id',
-                                    'answeredCorrectlyAt',
-                                    'answerHistory',
-                                    'createdAt',
-                                    'correctAnswer',
-                                    'difficulty',
-                                    'nextReviewAt',
-                                    'normalizedQuestion',
-                                    'tags',
-                                    'topic',
-                                    'question'
-                                ],
-                                properties: {
-                                    _id: { type: 'string' },
-                                    answeredCorrectlyAt: {
-                                        type: 'array',
-                                        items: { type: 'string', format: 'date-time' }
-                                    },
-                                    answerHistory: {
-                                        type: 'array',
-                                        items: {
-                                            type: 'object',
-                                            additionalProperties: false,
-                                            required: ['date', 'correct'],
-                                            properties: {
-                                                date: { type: 'string', format: 'date-time' },
-                                                correct: { type: 'boolean' }
-                                            }
-                                        }
-                                    },
-                                    createdAt: { type: 'string', format: 'date-time' },
-                                    correctAnswer: { type: 'string' },
-                                    difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
-                                    nextReviewAt: { type: 'string', format: 'date-time' },
-                                    normalizedQuestion: { type: 'string' },
-                                    tags: { type: 'array', items: { type: 'string' } },
-                                    topic: { type: 'string' },
-                                    question: { type: 'string' }
-                                }
-                            }
+                            items: dataResponseSchema
                         }
                     }
                 },
@@ -166,5 +116,56 @@ async function card(f) {
         },
         preHandler: [f.authenticate, index_middleware_1.checkUser],
         handler: (0, card_controller_1.getCards)(f)
+    });
+    f.route({
+        method: 'PUT',
+        url: ':ownerId',
+        schema: {
+            params: paramsSchema,
+            response: {
+                200: {
+                    additionalProperties: false,
+                    type: 'object',
+                    required: ['data'],
+                    properties: {
+                        data: dataResponseSchema
+                    }
+                },
+                404: { $ref: 'ErrorResponse#' },
+                500: { $ref: 'ErrorResponse#' }
+            }
+        },
+        preHandler: [f.authenticate, index_middleware_1.checkUser],
+        handler: (0, card_controller_1.answerCard)(f)
+    });
+    f.route({
+        method: 'GET',
+        url: ':cardId/:ownerId',
+        schema: {
+            params: {
+                additionalProperties: false,
+                type: 'object',
+                required: ['cardId', 'ownerId'],
+                properties: {
+                    cardId: { type: 'string' },
+                    ownerId: { type: 'string' }
+                }
+            },
+            response: {
+                200: {
+                    additionalProperties: false,
+                    type: 'object',
+                    required: ['cached', 'data'],
+                    properties: {
+                        cached: { type: 'boolean' },
+                        data: dataResponseSchema
+                    }
+                },
+                404: { $ref: 'ErrorResponse#' },
+                500: { $ref: 'ErrorResponse#' }
+            }
+        },
+        preHandler: [f.authenticate, index_middleware_1.checkUser],
+        handler: (0, card_controller_1.getCardById)(f)
     });
 }

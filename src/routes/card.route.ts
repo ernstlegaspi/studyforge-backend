@@ -1,7 +1,61 @@
 import type { FastifyInstance } from 'fastify'
 
-import { createCard, getCards } from '../controllers/card.controller'
+import { answerCard, createCard, getCardById, getCards } from '../controllers/card.controller'
 import { checkUser } from '../middleware/index.middleware'
+
+const dataResponseSchema = {
+	type: 'object',
+	additionalProperties: false,
+	required: [
+		'_id',
+		'answeredCorrectlyAt',
+		'answerHistory',
+		'correctAnswer',
+		'createdAt',
+		'difficulty',
+		'nextReviewAt',
+		'normalizedQuestion',
+		'tags',
+		'topic',
+		'question'
+	],
+	properties: {
+		_id: { type: 'string' },
+		answeredCorrectlyAt: {
+			type: 'array',
+			items: { type: 'string', format: 'date-time' }
+		},
+		answerHistory: {
+			type: 'array',
+			items: {
+				type: 'object',
+				additionalProperties: false,
+				required: ['date', 'correct'],
+				properties: {
+					date: { type: 'string', format: 'date-time' },
+					correct: { type: 'boolean' }
+				}
+			}
+		},
+		createdAt: { type: 'string', format: 'date-time' },
+		correctAnswer: { type: 'string' },
+		difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
+		nextReviewAt: { type: 'string', format: 'date-time' },
+		normalizedQuestion: { type: 'string' },
+		tags: { type: 'array' },
+		topic: { type: 'string' },
+		question: { type: 'string' }
+	}
+}
+
+const paramsSchema = {
+	type: 'object',
+	additionalProperties: false,
+	required: ['ownerId'],
+	properties: {
+		ownerId: { type: 'string' }
+	}
+}
 
 export default async function card(f: FastifyInstance) {
 	f.route({
@@ -26,65 +80,13 @@ export default async function card(f: FastifyInstance) {
 					question: { type: 'string', minLength: 5 }
 				}
 			},
-			params: {
-				type: 'object',
-				additionalProperties: false,
-				required: ['ownerId'],
-				properties: {
-					ownerId: { type: 'string' }
-				}
-			},
+			params: paramsSchema,
 			response: {
 				201: {
 					additionalProperties: false,
 					type: 'object',
 					required: ['data'],
-					properties: {
-						data: {
-							type: 'object',
-							additionalProperties: false,
-							required: [
-								'_id',
-								'answeredCorrectlyAt',
-								'answerHistory',
-								'correctAnswer',
-								'createdAt',
-								'difficulty',
-								'nextReviewAt',
-								'normalizedQuestion',
-								'tags',
-								'topic',
-								'question'
-							],
-							properties: {
-								_id: { type: 'string' },
-								answeredCorrectlyAt: {
-									type: 'array',
-									items: { type: 'string', format: 'date-time' }
-								},
-								answerHistory: {
-									type: 'array',
-									items: {
-										type: 'object',
-										additionalProperties: false,
-										required: ['date', 'correct'],
-										properties: {
-											date: { type: 'string', format: 'date-time' },
-											correct: { type: 'boolean' }
-										}
-									}
-								},
-								createdAt: { type: 'string', format: 'date-time' },
-								correctAnswer: { type: 'string' },
-								difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
-								nextReviewAt: { type: 'string', format: 'date-time' },
-								normalizedQuestion: { type: 'string' },
-								tags: { type: 'array' },
-								topic: { type: 'string' },
-								question: { type: 'string' }
-							}
-						}
-					}
+					properties: { data: dataResponseSchema }
 				},
 				500: { $ref: 'ErrorResponse#' }
 			}
@@ -97,14 +99,7 @@ export default async function card(f: FastifyInstance) {
 		method: 'GET',
 		url: ':ownerId',
 		schema: {
-			params: {
-				type: 'object',
-				additionalProperties: false,
-				required: ['ownerId'],
-				properties: {
-					ownerId: { type: 'string' }
-				}
-			},
+			params: paramsSchema,
 			response: {
 				200: {
 					type: 'object',
@@ -114,50 +109,7 @@ export default async function card(f: FastifyInstance) {
 						cached: { type: 'boolean' },
 						data: {
 							type: 'array',
-							items: {
-								type: 'object',
-								additionalProperties: false,
-								required: [
-									'_id',
-									'answeredCorrectlyAt',
-									'answerHistory',
-									'createdAt',
-									'correctAnswer',
-									'difficulty',
-									'nextReviewAt',
-									'normalizedQuestion',
-									'tags',
-									'topic',
-									'question'
-								],
-								properties: {
-									_id: { type: 'string' },
-									answeredCorrectlyAt: {
-										type: 'array',
-										items: { type: 'string', format: 'date-time' }
-									},
-									answerHistory: {
-										type: 'array',
-										items: {
-											type: 'object',
-											additionalProperties: false,
-											required: ['date', 'correct'],
-											properties: {
-												date: { type: 'string', format: 'date-time' },
-												correct: { type: 'boolean' }
-											}
-										}
-									},
-									createdAt: { type: 'string', format: 'date-time' },
-									correctAnswer: { type: 'string' },
-									difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
-									nextReviewAt: { type: 'string', format: 'date-time' },
-									normalizedQuestion: { type: 'string' },
-									tags: { type: 'array', items: { type: 'string' } },
-									topic: { type: 'string' },
-									question: { type: 'string' }
-								}
-							}
+							items: dataResponseSchema
 						}
 					}
 				},
@@ -167,5 +119,58 @@ export default async function card(f: FastifyInstance) {
 		},
 		preHandler: [f.authenticate, checkUser],
 		handler: getCards(f)
+	})
+
+	f.route({
+		method: 'PUT',
+		url: ':ownerId',
+		schema: {
+			params: paramsSchema,
+			response: {
+				200: {
+					additionalProperties: false,
+					type: 'object',
+					required: ['data'],
+					properties: {
+						data: dataResponseSchema
+					}
+				},
+				404: { $ref: 'ErrorResponse#' },
+				500: { $ref: 'ErrorResponse#' }
+			}
+		},
+		preHandler: [f.authenticate, checkUser],
+		handler: answerCard(f)
+	})
+
+	f.route({
+		method: 'GET',
+		url: ':cardId/:ownerId',
+		schema: {
+			params: {
+				additionalProperties: false,
+				type: 'object',
+				required: ['cardId', 'ownerId'],
+				properties: {
+					cardId: { type: 'string' },
+					ownerId: { type: 'string' }
+				}
+			},
+			response: {
+				200: {
+					additionalProperties: false,
+					type: 'object',
+					required: ['cached', 'data'],
+					properties: {
+						cached: { type: 'boolean' },
+						data: dataResponseSchema
+					}
+				},
+				404: { $ref: 'ErrorResponse#' },
+				500: { $ref: 'ErrorResponse#' }
+			}
+		},
+		preHandler: [f.authenticate, checkUser],
+		handler: getCardById(f)
 	})
 }

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyToken = exports.refresh = exports.signIn = exports.signUp = void 0;
+exports.refresh = exports.signIn = exports.signUp = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const crypto_1 = require("crypto");
 const user_model_1 = __importDefault(require("../models/user.model"));
@@ -132,7 +132,3 @@ const refresh = (f) => async (req, rep) => {
     }
 };
 exports.refresh = refresh;
-const verifyToken = (f) => async (req, rep) => {
-    return rep.code(200).send({ message: 'Inside!' });
-};
-exports.verifyToken = verifyToken;

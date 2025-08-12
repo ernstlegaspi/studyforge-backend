@@ -88,20 +88,4 @@ async function user(f) {
         },
         handler: (0, user_controller_1.refresh)(f)
     });
-    // f.route({
-    // 	method: 'GET',
-    // 	url: 'verify',
-    // 	schema: {
-    // 		response: {
-    // 			200: {
-    // 				type: 'object',
-    // 				properties: {
-    // 					message: { type: 'string' }
-    // 				}
-    // 			}
-    // 		}
-    // 	},
-    // 	preHandler: [f.authenticate, checkUser],
-    // 	handler: verifyToken(f)
-    // })
 }
