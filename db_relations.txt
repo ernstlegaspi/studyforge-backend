@@ -1,0 +1,33 @@
+user
+1. timestamps
+2. name
+3. password
+4. email
+5. cards[]
+6. notes[]
+7. progress
+
+card
+1. question
+2. timestamps
+3. correct answer
+4. nextReviewAt
+5. difficulty
+6. owner (user id)
+7. answeredCorrectlyAt
+8. answerHistory
+
+note
+1. timestamps
+2. user (user id)
+3. title
+4. content
+
+progress
+1. timestamps
+2. total cards reviewed
+3. cards reviewed yesterday
+4. cards reviewed today
+5. cards reviewed 1 week
+6. cards reviewed 1 month
+7. streak
